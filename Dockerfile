@@ -1,14 +1,12 @@
-# Use OpenJDK 21 as base image
-FROM eclipse-temurin:21-jdk-jammy
-
-# Set working directory inside the container
+# Stage 1 — Build stage
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
+COPY . .
+RUN mvn clean package -DskipTests
 
-# Copy the JAR file from target/ to the container
-COPY target/CodeMentorBackend-0.0.1-SNAPSHOT.jar app.jar
-
-# Expose port (adjust if your Spring Boot app uses a different port)
+# Stage 2 — Runtime stage
+FROM eclipse-temurin:21-jdk-jammy
+WORKDIR /app
+COPY --from=build /app/target/CodeMentorBackend-0.0.1-SNAPSHOT.jar app.jar
 EXPOSE 8080
-
-# Command to run your app
 ENTRYPOINT ["java", "-jar", "app.jar"]
