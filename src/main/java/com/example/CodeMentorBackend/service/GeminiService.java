@@ -7,7 +7,6 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
 
 @Service
 public class GeminiService {
@@ -18,8 +17,7 @@ public class GeminiService {
     @Value("${gemini.api.url}")
     private String geminiApiUrl;
 
-    @Autowired
-    private RestTemplate restTemplate;
+    private final RestTemplate restTemplate;
 
     private static final String REVIEW_PROMPT = """
 # 🔍 Expert Code Review
@@ -69,6 +67,10 @@ Simple tips and resources to help you grow as a developer.
 
 Please review this code:
 """;
+
+    public GeminiService(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
 
     public String reviewCode(String code) {
         JSONObject payload = new JSONObject();
