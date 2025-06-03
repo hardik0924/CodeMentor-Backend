@@ -1,12 +1,13 @@
 package com.example.CodeMentorBackend.service;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
-import org.json.JSONArray;
-import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Service
 public class GeminiService {
@@ -16,6 +17,9 @@ public class GeminiService {
 
     @Value("${gemini.api.url}")
     private String geminiApiUrl;
+
+    @Autowired
+    private RestTemplate restTemplate;
 
     private static final String REVIEW_PROMPT = """
 # 🔍 Expert Code Review
@@ -67,9 +71,6 @@ Please review this code:
 """;
 
     public String reviewCode(String code) {
-        RestTemplate restTemplate = new RestTemplate();
-
-        // Build Gemini API request payload
         JSONObject payload = new JSONObject();
         JSONArray contents = new JSONArray();
         JSONObject contentObj = new JSONObject();
@@ -83,28 +84,28 @@ Please review this code:
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        // Gemini API key as query param
         String url = geminiApiUrl + "?key=" + geminiApiKey;
 
         HttpEntity<String> entity = new HttpEntity<>(payload.toString(), headers);
 
-        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);
 
-        // Parse Gemini response
-        JSONObject responseBody = new JSONObject(response.getBody());
-        JSONArray candidates = responseBody.optJSONArray("candidates");
-        if (candidates != null && candidates.length() > 0) {
-            JSONObject content = candidates.getJSONObject(0).optJSONObject("content");
-            if (content != null) {
-                JSONArray reviewParts = content.optJSONArray("parts");
-                if (reviewParts != null && reviewParts.length() > 0) {
-                    return reviewParts.getJSONObject(0).optString("text", "No review generated.");
+            JSONObject responseBody = new JSONObject(response.getBody());
+            JSONArray candidates = responseBody.optJSONArray("candidates");
+            if (candidates != null && candidates.length() > 0) {
+                JSONObject content = candidates.getJSONObject(0).optJSONObject("content");
+                if (content != null) {
+                    JSONArray reviewParts = content.optJSONArray("parts");
+                    if (reviewParts != null && reviewParts.length() > 0) {
+                        return reviewParts.getJSONObject(0).optString("text", "No review generated.");
+                    }
                 }
             }
+            return "No review generated.";
+        } catch (RestClientException ex) {
+            ex.printStackTrace();
+            return "Failed to connect to Gemini API.";
         }
-        return "No review generated.";
     }
 }
-
-
-
